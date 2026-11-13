@@ -1,0 +1,51 @@
+/* v28 — abas inferiores estilo Excel (mesma posição em todas as telas), cabeçalho fixo e rolagem só dentro dos campos */
+/* (a regra ".shell{display:flex;...}" que vinha logo após esta linha era inválida no arquivo original e já era ignorada pelo navegador; mantida fora para não mudar o visual) */
+.xt{flex:none;display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 28px;background:var(--s);border-bottom:1px solid var(--ln);z-index:6}
+.xt .sp{flex:1}
+.xtl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;padding:2px 0}
+.xtl button{flex:none;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border:1.5px solid var(--bd);border-radius:8px;background:var(--s);color:var(--tx);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.xtl button:hover{background:var(--s2)}
+.xtl button[aria-selected=true]{background:var(--c1);border-color:var(--c1);color:#fff}
+.xtl .tn{margin:0;line-height:18px;padding:0 7px}
+.xp{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;height:44px;margin-top:8px;font-size:13.5px;white-space:nowrap}
+.xp .btn.s,.xp .btn.s[aria-label]{height:32px;min-height:32px;width:34px;min-width:34px;padding:0}
+.xp .btn.s .ic{width:16px;height:16px}
+.fx{min-width:0}
+@media(min-width:861px){
+ main.fit{display:flex;flex-direction:column;overflow:hidden;padding:0 28px 12px}
+ main.fit>*{flex:none}
+ main.fit>.tw,main.fit>.fx,main.fit>.board,main.fit>.gr,main.fit>.dt,main.fit>.nx-body,main.fit>.nx-body.a,main.fit>.nx-body.p,main.fit>.cr-wrap,main.fit>.pn.ov{flex:1 1 0;min-height:120px}
+ main.fit>.fx,main.fit>.nx-body.a,main.fit>.nx-body.p{overflow:auto}
+ main.fit:has(>.nx-body.a),main.fit:has(>.nx-body.p){overflow:hidden}
+ main.fit .tw{max-height:none;overflow:auto}
+ main.fit>.tw.empty{flex:none;min-height:0}
+}
+@media(max-width:860px){.xt{padding:8px 14px}}
+.tb{z-index:8}
+#root .btn.ib{position:relative;overflow:visible;width:38px;min-width:38px;padding:0}
+#root .btn.s.ib{width:34px;min-width:34px;height:34px;min-height:34px}
+.btn.ib::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);font-size:12.5px;font-weight:600;line-height:1.3;padding:4px 9px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:60}
+.btn.ib.tr::after{left:auto;right:0;transform:none}
+.btn.ib:hover::after,.btn.ib:focus-visible::after{opacity:1;transition-delay:.3s}
+.dh>div,.nx-h>div{min-width:0;flex:1}
+h1,.sub,.nx-h .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sub{max-width:none}
+@media print{.xt{display:none!important}}
+/* v31 estoque */
+td input.ci{width:104px;min-height:34px;text-align:right}
+tr.dvr td{background:var(--badb)}
+select.er{outline:2px solid var(--bad)}
+/* v32 — padrão de cards: 3 tipos, fonte em 4 níveis (o sistema desce de nível sozinho até nada ter barra de rolagem)
+   tipo 1 KPI (.nx-k) · tipo 2 painel (.nx-c) · tipo 3 KPI de lista (.kg .card.kp) */
+:root{--cn:24px;--ct:15px;--cs:12.5px;--cp:14px;--ci:34px;--cg:8px}
+html[data-dens="1"]{--cn:21px;--ct:14px;--cs:12px;--cp:9px;--ci:28px;--cg:5px}
+html[data-dens="2"]{--cn:19px;--ct:13px;--cs:11.5px;--cp:6px;--ci:24px;--cg:3px}
+html[data-dens="3"]{--cn:17px;--ct:12px;--cs:11px;--cp:4px;--ci:0px;--cg:2px}
+html[data-dens="3"] .nx-k .nx-i{display:none}
+.nx-k{padding:var(--cp) 12px;gap:var(--cg);min-height:0;overflow:hidden}.nx-k .t{font-size:var(--ct)}.nx-k b{font-size:var(--cn)}.nx-k .nx-i{width:var(--ci);height:var(--ci)}.nx-bg{font-size:var(--cs)}
+.nx-c{padding:calc(var(--cp) + 4px) calc(var(--cp) + 6px)}.nx-c h3{font-size:var(--ct)}.nx-c .hint{font-size:var(--cs)}.nx-m b{font-size:var(--cn)}.nx-m span{font-size:var(--cs)}.nx-m small{font-size:calc(var(--cs) - .5px)}
+.nx-svg{min-height:0!important}.nx-kc>*,.nx-side>.nx-c,.nx-top .nx-c{overflow:hidden!important}
+.kg .card.kp{padding:var(--cp) 10px;min-height:0;gap:var(--cg);overflow:hidden}.kg .card.kp b{font-size:var(--cn)}.kg .card.kp span{font-size:var(--cs)}
+.cards .card{padding:var(--cp) 12px}.cards .card b{font-size:var(--cn)}
+/* tabela paginada nunca rola na vertical */
+.tw.pg{overflow-x:auto!important;overflow-y:hidden!important}
