@@ -28,7 +28,10 @@ const durK=()=>DUR.some(x=>x[0]===S.cfg.tdur)?S.cfg.tdur:'m7';
 const durL=()=>DUR.find(x=>x[0]===durK())[1].replace(' (teste)','');
 const codeNow=()=>S.cfg.tcode||'14d64dfa32aa';
 const endOf=(t0,k)=>{const d=DUR.find(x=>x[0]===k);if(!d[2]){const e=new Date(t0);e.setMonth(e.getMonth()+1);return e.getTime()}return t0+d[2]*60000};
-const tr=()=>{const t=S.cfg&&S.cfg.trial;return t&&t.on&&Date.now()<t.fim?t:null};
+/* Teste grátis individual: cada usuário tem o seu, guardado em cfg.trials[id do usuário]. */
+const tk=()=>me?String(me.id||me.u):'';
+const myT=()=>S.cfg&&S.cfg.trials&&S.cfg.trials[tk()];
+const tr=()=>{const t=myT();return t&&t.on&&Date.now()<t.fim?t:null};
 window.planLv=()=>{const t=tr();return t?t.plano:0};
 window.planOK=k=>(KL[k]||0)<=window.planLv();
 const fdh=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -52,13 +55,13 @@ Object.assign(A,{
  plTry(){const c=($('#pl_c').value||'').trim().toLowerCase(),p=+$('#pl_s').value;
   if(!c){toast('Digite o código de teste.');$('#pl_c').focus();return}
   if(c!==codeNow().trim().toLowerCase()){toast('Código inválido. Confira e tente de novo.');return}
-  const t0=Date.now();S.cfg.trial={on:true,plano:p,ini:t0,fim:endOf(t0,durK()),dur:durK()};save();render();toast('Teste do plano '+PL[p-1].n+' liberado por '+durL())},
+  const t0=Date.now();delete S.cfg.trial;(S.cfg.trials=S.cfg.trials||{})[tk()]={on:true,plano:p,ini:t0,fim:endOf(t0,durK()),dur:durK()};save();render();toast('Teste do plano '+PL[p-1].n+' liberado por '+durL())},
  plCfg(){const c=$('#pt_c').value.trim();if(c.length<4){toast('O código precisa ter ao menos 4 caracteres.');return}
   S.cfg.tcode=c;S.cfg.tdur=$('#pt_d').value;save();render();toast('Teste grátis salvo: '+durL())}});
 
 const g0=A.go;A.go=function(v){if(me&&!window.planOK(v)){toast('Este recurso não está no plano ativo. Veja a aba Planos.');return}return g0.apply(this,arguments)};
 
-const watch=()=>{const t=S.cfg&&S.cfg.trial;if(t&&t.on&&Date.now()>=t.fim){t.on=false;save();if(me){toast('Teste encerrado: os recursos do plano foram desativados.');if(!can(view))view=me.r==='med'?'mdc':'dash';render()}}};
+const watch=()=>{const t=myT();if(t&&t.on&&Date.now()>=t.fim){t.on=false;save();if(me){toast('Teste encerrado: os recursos do plano foram desativados.');if(!can(view))view=me.r==='med'?'mdc':'dash';render()}}};
 setInterval(watch,5000);
 const R3=render;render=function(){document.documentElement.dataset.pl=String(window.planLv());return R3.apply(this,arguments)};
 

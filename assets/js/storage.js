@@ -16,17 +16,19 @@ const Store=(()=>{
   let LAST={rec:new Map(),set:new Map()},tm=0,busy=false,again=false,pending=false,lastErr=0,rt=0;
 
   const push=async()=>{const sb=window.sb,cur=split(S),up=[],del=new Map(),sup=[];
-    cur.rec.forEach((r,k)=>{const c=canon(r.data);if(LAST.rec.get(k)!==c)up.push({k,c,row:r})});
+    cur.rec.forEach((r,k)=>{const c=canon(r.data);if(LAST.rec.get(k)!==c)up.push({k,c,row:r,old:LAST.rec.get(k)})});
     LAST.rec.forEach((_,k)=>{if(!cur.rec.has(k)){const[c,id]=k.split(SEP);(del.get(c)||del.set(c,[]).get(c)).push({k,id})}});
     cur.set.forEach((v,k)=>{const c=canon(v);if(LAST.set.get(k)!==c)sup.push({k,c,row:{key:k,value:v}})});
     for(let i=0;i<up.length;i+=PAGE){const ch=up.slice(i,i+PAGE);
-      const{error}=await sb.from('records').upsert(ch.map(x=>x.row),{onConflict:'collection,id'});if(error)throw error;
-      ch.forEach(x=>LAST.rec.set(x.k,x.c))}
+      ch.forEach(x=>LAST.rec.set(x.k,x.c));
+      const{error}=await sb.from('records').upsert(ch.map(x=>x.row),{onConflict:'collection,id'});
+      if(error){ch.forEach(x=>x.old===undefined?LAST.rec.delete(x.k):LAST.rec.set(x.k,x.old));throw error}}
     for(const[c,items]of del)for(let i=0;i<items.length;i+=200){const ch=items.slice(i,i+200);
       const{error}=await sb.from('records').delete().eq('collection',c).in('id',ch.map(x=>x.id));if(error)throw error;
       ch.forEach(x=>LAST.rec.delete(x.k))}
-    if(sup.length){const{error}=await sb.from('settings').upsert(sup.map(x=>x.row),{onConflict:'key'});if(error)throw error;
-      sup.forEach(x=>LAST.set.set(x.k,x.c))}};
+    if(sup.length){const old=sup.map(x=>LAST.set.get(x.k));sup.forEach(x=>LAST.set.set(x.k,x.c));
+      const{error}=await sb.from('settings').upsert(sup.map(x=>x.row),{onConflict:'key'});
+      if(error){sup.forEach((x,i)=>old[i]===undefined?LAST.set.delete(x.k):LAST.set.set(x.k,old[i]));throw error}}};
 
   const flush=async()=>{if(busy){again=true;return}busy=true;
     try{do{again=false;await push()}while(again);pending=false}
@@ -34,8 +36,10 @@ const Store=(()=>{
       clearTimeout(tm);tm=setTimeout(flush,5000)}
     finally{busy=false}};
 
+  let down=0,lastAct=0;['pointerdown','keydown'].forEach(n=>document.addEventListener(n,()=>{down=n==='pointerdown'?1:down;lastAct=Date.now()},true));
+  ['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,()=>{down=0;lastAct=Date.now()},true));
   const refresh=()=>{clearTimeout(rt);const go=()=>{const a=document.activeElement;
-      if(document.querySelector('dialog[open]')||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){rt=setTimeout(go,2000);return}
+      if(down||Date.now()-lastAct<1500||document.querySelector('dialog[open]')||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){rt=setTimeout(go,1500);return}
       if(me)render()};rt=setTimeout(go,400)};
   const replace=(o,n)=>{Object.keys(o).forEach(k=>delete o[k]);Object.assign(o,n)};
   const onRec=p=>{const del=p.eventType==='DELETE',row=del?p.old:p.new;if(!row||!row.collection)return;
