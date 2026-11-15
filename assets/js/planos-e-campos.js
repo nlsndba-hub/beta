@@ -24,9 +24,10 @@ const MD=[ /* [módulo, plano mínimo, chaves de menu liberadas] */
  ['Várias clínicas (unidades)',4,[]]];
 const KL={};MD.forEach(m=>m[2].forEach(k=>KL[k]=m[1]));
 const DUR=[['m7','7 minutos (teste)',7],['m30','30 minutos',30],['h1','1 hora',60],['h3','3 horas',180],['h12','12 horas',720],['d1','1 dia',1440],['d3','3 dias',4320],['d7','7 dias',10080],['d15','15 dias',21600],['d30','30 dias',43200],['mo1','1 mês',0]];
-const durK=()=>DUR.some(x=>x[0]===S.cfg.tdur)?S.cfg.tdur:'m7';
+/* Teste grátis: sempre 7 dias. O código digitado define qual plano é liberado. */
+const durK=()=>'d7';
+const CODES={'14d64dfas32aabasi':1,'14d64dfas32aaprof':2,'14d64dfas32aaprem':3,'14d64dfas32aaplus':4}; /* código -> plano (1 Básico, 2 Profissional, 3 Premium, 4 Premium +) */
 const durL=()=>DUR.find(x=>x[0]===durK())[1].replace(' (teste)','');
-const codeNow=()=>S.cfg.tcode||'14d64dfa32aa';
 const endOf=(t0,k)=>{const d=DUR.find(x=>x[0]===k);if(!d[2]){const e=new Date(t0);e.setMonth(e.getMonth()+1);return e.getTime()}return t0+d[2]*60000};
 /* Teste grátis individual: cada usuário tem o seu, guardado em cfg.trials[id do usuário]. */
 const tk=()=>me?String(me.id||me.u):'';
@@ -46,18 +47,17 @@ V.plan=()=>{const t=tr();
  const rows=MD.map(m=>`<tr><td>${esc(m[0])}</td>${PL.map(p=>`<td class="c">${p.id>=m[1]?'<span class="tag ok" aria-label="Incluso">✓</span>':'<span aria-label="Não incluso">—</span>'}</td>`).join('')}</tr>`).join('');
  return`<h1>Planos</h1><p class="sub">Escolha o plano que cabe na clínica. Cada plano libera um conjunto de menus; o valor é a mensalidade sugerida.</p><div class="fx"><div class="pl-g">${cards}</div>
  <section class="pn"><h2>Resumo do acesso por plano</h2><div class="tw"><table class="pl-tb"><thead><tr><th>Módulo</th>${PL.map(p=>`<th class="c">${esc(p.n)}</th>`).join('')}</tr></thead><tbody><tr><td><b>Mensalidade</b></td>${PL.map(p=>`<td class="c"><b>${brl2(p.p)}</b></td>`).join('')}</tr>${rows}</tbody></table></div></section>
- <section class="pn pl-t"><h2>Testar por ${esc(durL())}</h2>${t?`<p class="fxb" role="status">Teste do plano <b>${esc(PL[t.plano-1].n)}</b> ativo até ${fdh(t.fim)} (restam ${left(t.fim-Date.now())}). Depois disso, os recursos do plano deixam de funcionar.</p>`:`<p class="hint">Escolha o plano, digite o código e libere os recursos por ${esc(durL())}. Ao terminar, ficam apenas Painel e Configurações.</p>`}
- <div class="pl-f"><div class="s"><label for="pl_s">Plano</label><select id="pl_s">${PL.map(p=>`<option value="${p.id}" ${(t?t.plano:1)===p.id?'selected':''}>${esc(p.n)} — ${brl2(p.p)}/mês</option>`).join('')}</select></div><div class="t"><label for="pl_c">Código de teste</label><input id="pl_c" type="text" autocomplete="off" placeholder="Digite o código"></div><div><label>&nbsp;</label><button class="btn p" data-a="plTry">Testar por ${esc(durL())}</button></div></div></section></div>`};
+ <section class="pn pl-t"><h2>Testar por ${esc(durL())}</h2>${t?`<p class="fxb" role="status">Teste do plano <b>${esc(PL[t.plano-1].n)}</b> ativo até ${fdh(t.fim)} (restam ${left(t.fim-Date.now())}). Depois disso, os recursos do plano deixam de funcionar.</p>`:`<p class="hint">Digite o código recebido: ele libera o plano correspondente por ${esc(durL())}. Ao terminar, ficam apenas Painel e Configurações.</p>`}
+ <div class="pl-f"><div class="t"><label for="pl_c">Código de teste</label><input id="pl_c" type="text" autocomplete="off" placeholder="Digite o código"></div><div><label>&nbsp;</label><button class="btn p" data-a="plTry">Ativar teste de ${esc(durL())}</button></div></div></section></div>`};
 
-window.PLCFG=()=>`<div class="fx"><div style="display:grid;gap:12px;max-width:580px"><h2>Teste grátis dos planos</h2><p class="hint">Só administradores veem esta área. A nova duração vale para os próximos testes.</p><div><label for="pt_c">Código de teste</label><input id="pt_c" type="text" autocomplete="off" value="${esc(codeNow())}"></div><div><label for="pt_d">Duração do teste</label><select id="pt_d">${DUR.map(([k,l])=>`<option value="${k}" ${k===durK()?'selected':''}>${l}</option>`).join('')}</select></div><div><button class="btn p" data-a="plCfg">Salvar teste grátis</button></div></div></div>`;
+window.PLCFG=()=>`<div class="fx"><div style="display:grid;gap:12px;max-width:580px"><h2>Teste grátis dos planos</h2><p class="hint">Cada código de teste libera um plano (Básico, Profissional, Premium ou Premium +) por 7 dias para quem o digitar na aba Planos. Os códigos são fixos e definidos no sistema.</p></div></div>`;
 
 Object.assign(A,{
- plTry(){const c=($('#pl_c').value||'').trim().toLowerCase(),p=+$('#pl_s').value;
+ plTry(){const c=($('#pl_c').value||'').trim().toLowerCase(),p=CODES[c];
   if(!c){toast('Digite o código de teste.');$('#pl_c').focus();return}
-  if(c!==codeNow().trim().toLowerCase()){toast('Código inválido. Confira e tente de novo.');return}
+  if(!p){toast('Código inválido. Confira e tente de novo.');return}
   const t0=Date.now();delete S.cfg.trial;(S.cfg.trials=S.cfg.trials||{})[tk()]={on:true,plano:p,ini:t0,fim:endOf(t0,durK()),dur:durK()};save();render();toast('Teste do plano '+PL[p-1].n+' liberado por '+durL())},
- plCfg(){const c=$('#pt_c').value.trim();if(c.length<4){toast('O código precisa ter ao menos 4 caracteres.');return}
-  S.cfg.tcode=c;S.cfg.tdur=$('#pt_d').value;save();render();toast('Teste grátis salvo: '+durL())}});
+});
 
 const g0=A.go;A.go=function(v){if(me&&!window.planOK(v)){toast('Este recurso não está no plano ativo. Veja a aba Planos.');return}return g0.apply(this,arguments)};
 
