@@ -19,14 +19,16 @@ const hide=e=>{if(!e)return;if('popover'in e){try{if(e.matches(':popover-open'))
 const put=(e,h)=>{if(e.dataset.h!==h){e.innerHTML=h;e.dataset.h=h}show(e)};
 const ago=t=>{const m=Math.max(0,Math.round((Date.now()-new Date(t))/60000));return m<1?'agora mesmo':m<60?'há '+m+' min':'há '+Math.floor(m/60)+' h'};
 const wake=()=>{if(window.RSL_wake)window.RSL_wake()};
+const isRec=r=>!!r&&/recep/.test(nz(r.nome)),occ=r=>{const rm=findRoom(r);return rm?mvL().find(v=>v.sala===rm.id&&v.med!==r.med&&actv(v)):null};
+const beep=on=>{const s=window.RSL_SOM;if(s)on?s.start('beep'):s.stop('beep')};
 
 /* ---------- médico: escolha da sala ---------- */
 let OPEN=false,focused=false,prevPend=false,prevKey='',prevSes=null,seen=new Set(),started=false;
 const shown=()=>{try{return sessionStorage.getItem(FLAG)==='1'}catch(e){return false}},mark=()=>{try{sessionStorage.setItem(FLAG,'1')}catch(e){}};
 const pickHTML=()=>{const pend=myReqs().find(r=>r.st==='pend'),links=myLinks(),mine=new Set(links.map(v=>v.sala));
  if(pend)return`<div class="vqh"><span class="vqi">${IC('steth')}</span><div><b>Aguardando aprovação</b><div class="hint">Pedido enviado para a sala <b>${esc(qRoom(pend))}</b>. Quando a administração aprovar, você fica vinculado até sair do sistema.</div></div></div><div class="vqs" role="status"><span class="vqd"></span>Aguardando a administração…</div><div class="vqa"><button type="button" class="btn" data-a="vqCancel">Trocar de sala</button><button type="button" class="btn p" data-a="vqClose">Continuar no sistema</button></div>`;
- const L=SL(),warn=me.m?'':'<div class="vqw" role="alert">Seu usuário ainda não está ligado a um cadastro de médico. Peça à administração para ligar em Funcionários e acessos.</div>';
- return`<div class="vqh"><span class="vqi">${IC('steth')}</span><div><b>${links.length?'Trocar de sala':'Em qual sala você vai atender?'}</b><div class="hint">Escolha a sala e solicite o vínculo. A administração precisa aprovar.</div></div></div>${warn}<div class="vqg">${L.length?L.map(r=>{const on=mvL().filter(v=>v.sala===r.id&&actv(v)),here=mine.has(r.id);return`<button type="button" class="vqr${here?' me':''}" data-a="vqPick,${r.id}" ${here||!me.m?'disabled':''}><b>${esc(r.nome)}</b><span>${here?'Você está aqui':on.length?'Com '+on.map(v=>esc(medN(v.med))).join(', '):'Livre de médico'}</span></button>`}).join(''):'<div class="hint">Nenhuma sala cadastrada ainda. Peça à administração para cadastrar em Salas › Cadastrar.</div>'}</div><div class="vqa"><button type="button" class="btn" data-a="vqClose">Agora não</button></div>`};
+ const L=SL().filter(r=>!isRec(r)),warn=me.m?'':'<div class="vqw" role="alert">Seu usuário ainda não está ligado a um cadastro de médico. Peça à administração para ligar em Funcionários e acessos.</div>';
+ return`<div class="vqh"><span class="vqi">${IC('steth')}</span><div><b>${links.length?'Trocar de sala':'Em qual sala você vai atender?'}</b><div class="hint">Escolha a sala e solicite o vínculo. A administração precisa aprovar.</div></div></div>${warn}<div class="vqg">${L.length?L.map(r=>{const on=mvL().filter(v=>v.sala===r.id&&actv(v)),here=mine.has(r.id),busy=!here&&on.some(v=>v.med!==me.m);return`<button type="button" class="vqr${here?' me':''}" data-a="vqPick,${r.id}" ${here||busy||!me.m?'disabled':''}><b>${esc(r.nome)}</b><span>${here?'Você está aqui':on.length?(busy?'Ocupada · ':'Com ')+on.map(v=>esc(medN(v.med))).join(', '):'Livre de médico'}</span></button>`}).join(''):'<div class="hint">Nenhuma sala cadastrada ainda. Peça à administração para cadastrar em Salas › Cadastrar.</div>'}</div><div class="vqa"><button type="button" class="btn" data-a="vqClose">Agora não</button></div>`};
 const medTick=()=>{const reqs=myReqs(),no=reqs.find(r=>r.st==='no'),pend=reqs.find(r=>r.st==='pend'),links=myLinks(),key=links.map(v=>v.id).join(),ses=links.find(v=>v.ses);
  if(no){S.mr=mrL().filter(r=>r.id!==no.id);save();toast('A administração recusou a sala '+qRoom(no)+'. Escolha outra sala.');OPEN=true;focused=false}
  else if(started&&prevPend&&!pend&&links.length&&key!==prevKey){OPEN=false;toast('Vínculo aprovado: sala '+roomN(links[0].sala)+'.')}
@@ -43,15 +45,15 @@ const medTick=()=>{const reqs=myReqs(),no=reqs.find(r=>r.st==='no'),pend=reqs.fi
 
 /* ---------- administração: pedidos piscando em néon branco ---------- */
 const admTick=()=>{const rs=mrL().filter(r=>r.st==='pend'&&r.t).sort((a,b)=>a.t.localeCompare(b.t)),e=mk('vq-adm');
- if(!rs.length){hide(e);seen=new Set();return}
+ if(!rs.length){hide(e);seen=new Set();beep(false);return}
  let fresh=false;rs.forEach(r=>{if(!seen.has(r.id)){seen.add(r.id);fresh=true}});if(fresh)wake();
- put(e,`<div class="vqt">${IC('bell')}<b>${rs.length>1?rs.length+' solicitações de vínculo':'Solicitação de vínculo'}</b></div>${rs.map(r=>`<div class="vqq"><div><b>${esc(medN(r.med))}</b> pede a sala <b>${esc(qRoom(r)||'(removida)')}</b><div class="vqm">${ago(r.t)}</div></div><div class="vqx"><button type="button" class="btn w s" data-a="vqOk,${r.id}">Aprovar</button><button type="button" class="btn s" data-a="vqNo,${r.id}">Recusar</button></div></div>`).join('')}`);
+ put(e,`<div class="vqt">${IC('bell')}<b>${rs.length>1?rs.length+' solicitações de vínculo':'Solicitação de vínculo'}</b></div>${rs.map(r=>{const bz=occ(r);return`<div class="vqq"><div><b>${esc(medN(r.med))}</b> pede a sala <b>${esc(qRoom(r)||'(removida)')}</b><div class="vqm">${ago(r.t)}${bz?' · sala ocupada por '+esc(medN(bz.med))+' (desvincule antes de aprovar)':''}</div></div><div class="vqx"><button type="button" class="btn w s" data-a="vqOk,${r.id}" ${bz?'disabled':''}>Aprovar</button><button type="button" class="btn s" data-a="vqNo,${r.id}">Recusar</button></div></div>`}).join('')}`);beep(true);
  e.setAttribute('role','alertdialog');e.setAttribute('aria-live','assertive');e.setAttribute('aria-label','Solicitação de vínculo de médico à sala')};
 
-const reset=()=>{OPEN=false;focused=false;prevPend=false;prevKey='';prevSes=null;seen=new Set();started=false;['vq-pick','vq-adm'].forEach(i=>hide(document.getElementById(i)));const p=document.getElementById('vq-pill');if(p)p.remove()};
+const reset=()=>{OPEN=false;focused=false;prevPend=false;prevKey='';prevSes=null;seen=new Set();started=false;['vq-pick','vq-adm'].forEach(i=>hide(document.getElementById(i)));beep(false);const p=document.getElementById('vq-pill');if(p)p.remove()};
 const tick=()=>{if(!me){reset();return}
  if(isMed())medTick();else{hide(document.getElementById('vq-pick'));const p=document.getElementById('vq-pill');if(p)p.remove()}
- if(isAdm())admTick();else hide(document.getElementById('vq-adm'))};
+ if(isAdm())admTick();else{hide(document.getElementById('vq-adm'));beep(false)}};
 
 /* ---------- ações ---------- */
 Object.assign(A,{
@@ -60,10 +62,14 @@ Object.assign(A,{
  vqCancel(){S.mr=mrL().filter(r=>!(r.u===me.u&&r.st==='pend'));save();focused=false;tick()},
  vqPick(sala){if(!isMed())return;if(!me.m){toast('Seu usuário ainda não está ligado a um cadastro de médico.');return}
   if(!SL().some(r=>r.id===sala)){toast('Essa sala não existe mais.');return}
+  if(isRec(SL().find(r=>r.id===sala))){toast('Médico não pode se vincular à recepção.');return}
+  const ob=mvL().find(v=>v.sala===sala&&v.med!==me.m&&actv(v));if(ob){toast('A sala '+roomN(sala)+' já tem médico vinculado: '+medN(ob.med)+'.');return}
   if(myLinks().some(v=>v.sala===sala)){toast('Você já está nessa sala.');return}
   S.mr=mrL().filter(r=>r.u!==me.u);S.mr.push({id:uid(),med:me.m,u:me.u,sala,rn:roomN(sala),t:new Date().toISOString(),st:'pend'});save();focused=false;tick()},
  vqOk(id){if(!isAdm())return;const r=mrL().find(x=>x.id===id);if(!r)return;
   const room=findRoom(r);if(!room){S.mr=mrL().filter(x=>x.id!==id);save();tick();toast('Essa sala foi removida. Pedido descartado.');return}
+  if(isRec(room)){S.mr=mrL().filter(x=>x.id!==id);save();tick();toast('Médico não pode ser vinculado à recepção. Pedido descartado.');return}
+  const bz=occ(r);if(bz){toast('A sala '+room.nome+' já tem médico vinculado: '+medN(bz.med)+'. Desvincule antes de aprovar.');return}
   const n=nowS();mvL().forEach(v=>{if(v.med===r.med&&actv(v))v.fim=n});
   S.mv=mvL().filter(v=>v.fim>v.ini);S.mv.push({id:uid(),med:r.med,sala:room.id,ini:n,fim:FOREVER,ses:1,by:(me&&me.u)||''});
   S.mr=mrL().filter(x=>x.id!==id);save();render();tick();toast(medN(r.med)+' vinculado(a) à sala '+room.nome+'.')},

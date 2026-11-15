@@ -19,6 +19,10 @@ const mvRoom=id=>mvL().filter(v=>v.sala===id&&actv(v)),medN=id=>sn(by('med',id).
 const DEV='ur-dev-room',devRoom=()=>{try{return localStorage.getItem(DEV)||''}catch(e){return''}};
 const myRooms=()=>{const s=new Set(),d=devRoom();if(d&&SL().some(r=>r.id===d))s.add(d);if(me&&me.m)mvL().filter(v=>v.med===me.m&&actv(v)).forEach(v=>s.add(v.sala));return s};
 const canMv=()=>!!me&&(me.r==='admin'||me.r==='rec');
+const isRec=r=>!!r&&/recep/.test(nz(r.nome)),recId=id=>isRec(SL().find(r=>r.id===id));
+/* quem recebe chamadas: o computador da sala, o médico vinculado e, para a sala Recepção, os usuários de recepção/administração logados */
+const recvRooms=()=>{const s=myRooms();if(me&&(me.r==='rec'||me.r==='admin'))SL().filter(isRec).forEach(r=>s.add(r.id));return s};
+const waBtn=(id,full)=>mvRoom(id).map(v=>`<button type="button" class="btn${full?'':' s'}" data-a="waMed,${v.med}" title="Chamar ${esc(medN(v.med))} no WhatsApp" aria-label="Ligar no WhatsApp para ${esc(medN(v.med))}">${IC('wa')}${full?'Ligar no WhatsApp · '+esc(medN(v.med)):'WhatsApp'}</button>`).join('');
 const chipRoom=id=>{const l=mvRoom(id);return l.length?`<span class="mvc">${IC('steth')}${l.map(v=>esc(medN(v.med))).join(', ')}</span>`:''};
 
 /* ---------- canal de aviso (signaling) ---------- */
@@ -37,7 +41,7 @@ const actx=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)()
 ['pointerdown','keydown'].forEach(n=>document.addEventListener(n,()=>{actx()},{capture:true,passive:true}));
 const note=(f,t0,d,v)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.05);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.05)};
 const ringOnce=out=>{const a=actx();if(!a||a.state!=='running')return;const t=a.currentTime+.02;if(out)note(440,t,.9,.05);else{note(523.25,t,.5,.08);note(659.25,t+.4,.6,.08);note(523.25,t+1.2,.5,.08);note(659.25,t+1.6,.6,.08)}};
-const ringStop=()=>{clearInterval(ringTm);ringTm=0},ringStart=out=>{ringStop();ringOnce(out);ringTm=setInterval(()=>ringOnce(out),out?3200:3200)};
+const SOM=()=>window.RSL_SOM,ringStop=()=>{clearInterval(ringTm);ringTm=0;if(SOM())SOM().stop('call')},ringStart=out=>{ringStop();if(!out&&SOM()&&SOM().start('call'))return;ringOnce(out);ringTm=setInterval(()=>ringOnce(out),3200)};
 
 /* ---------- tela da chamada (camada acima de tudo) ---------- */
 let C=null;
@@ -78,7 +82,7 @@ const myName=()=>me.m?medN(me.m):(me.u||'Usuário');
 
 /* ---------- mensagens recebidas ---------- */
 async function onMsg(m){if(!m||m.from===CID||!me)return;
- if(m.t==='ring'){if(!myRooms().has(m.to))return;if(C){send({t:'busy',call:m.call,to:m.from});return}
+ if(m.t==='ring'){if(!recvRooms().has(m.to))return;if(C){send({t:'busy',call:m.call,to:m.from});return}
   C={role:'in',st:'ring',call:m.call,peer:m.from,name:(m.fr||{}).name,rn:(m.fr||{}).rn,to:m.to};
   ringStart(false);if(window.RSL_wake)window.RSL_wake();ui();const c=C;c.tmo=setTimeout(()=>{if(C===c&&c.st==='ring')end('Chamada perdida de '+(c.name||'uma sala')+'.')},60000);return}
  if(!C||C.call!==m.call)return;
@@ -102,18 +106,20 @@ async function dial(roomId){
  C={role:'out',st:'ring',call:uid(),name:roomN(roomId),rn:'',to:roomId,stream:st};
  send({t:'ring',call:C.call,to:roomId,fr:{name:myName(),room:mine,rn:roomN(mine)}});
  ringStart(true);const c=C;c.tmo=setTimeout(()=>{if(C===c&&c.st==='ring'){send({t:'cancel',call:c.call});end('Ninguém atendeu a chamada.')}},45000);ui()}
-const rooms=()=>{const mine=myRooms();modal(`<h2 class="f">Ligar para uma sala</h2><div class="f hint">A chamada toca na sala escolhida, para o médico vinculado a ela ou para o computador dedicado à sala.${mine.size?' Você está em: <b>'+[...mine].map(r=>esc(roomN(r))).join(', ')+'</b>.':''}</div><div class="f cvl">${SL().map(r=>`<div class="row"><span><b>${esc(r.nome)}</b> ${chipRoom(r.id)}</span><button type="button" class="btn s p" data-a="cvCall,${r.id}" ${mine.has(r.id)?'disabled':''}>${IC('mic')}Ligar</button></div>`).join('')}</div><div class="f"><label for="cv_dev">Este computador fica na sala</label><select id="cv_dev" data-cvdev><option value="">Nenhuma (vale o vínculo do médico)</option>${SL().map(r=>`<option value="${r.id}" ${devRoom()===r.id?'selected':''}>${esc(r.nome)}</option>`).join('')}</select></div>`)};
+const rooms=()=>{const mine=myRooms();modal(`<h2 class="f">Ligar para uma sala</h2><div class="f hint">A chamada toca na sala escolhida, para o médico vinculado a ela ou para o computador dedicado à sala.${mine.size?' Você está em: <b>'+[...mine].map(r=>esc(roomN(r))).join(', ')+'</b>.':''}</div><div class="f cvl">${SL().map(r=>`<div class="row"><span><b>${esc(r.nome)}</b> ${chipRoom(r.id)}</span><span class="cvx">${waBtn(r.id)}<button type="button" class="btn s p" data-a="cvCall,${r.id}" ${mine.has(r.id)?'disabled':''}>${IC('mic')}Ligar</button></span></div>`).join('')}</div><div class="f"><label for="cv_dev">Este computador fica na sala</label><select id="cv_dev" data-cvdev><option value="">Nenhuma (vale o vínculo do médico)</option>${SL().map(r=>`<option value="${r.id}" ${devRoom()===r.id?'selected':''}>${esc(r.nome)}</option>`).join('')}</select></div>`)};
 document.addEventListener('change',e=>{const s=e.target.closest&&e.target.closest('[data-cvdev]');if(s){try{localStorage.setItem(DEV,s.value)}catch(x){}toast(s.value?'Este computador agora recebe chamadas da sala '+roomN(s.value)+'.':'Este computador não está vinculado a uma sala.')}});
-const mvAdd=id=>{const meds=S.med.filter(m=>m.tipo==='Radiologista'),L=(meds.length?meds:S.med).map(m=>[m.id,sn(m.nome)]),R=SL().map(r=>[r.id,r.nome]);
+const mvAdd=id=>{const meds=S.med.filter(m=>m.tipo==='Radiologista'),L=(meds.length?meds:S.med).map(m=>[m.id,sn(m.nome)]),R=SL().filter(r=>!isRec(r)).map(r=>[r.id,r.nome]);
  if(!L.length){toast('Cadastre um médico primeiro.');return}if(!R.length){toast('Cadastre as salas primeiro.');return}
  const d=new Date(),mn=d.getHours()*60+d.getMinutes(),f=n=>pad(Math.floor(n/60))+':'+pad(n%60);
- form('Vincular médico à sala',[['med','Médico(a)','sel',L],['sala','Sala','sel',R],['dia','Dia','date'],['de','Das','time'],['ate','Até','time']],{med:L[0][0],sala:id||R[0][0],dia:today(),de:f(mn),ate:f(Math.min(mn+240,1439))},o=>{
+ form('Vincular médico à sala',[['med','Médico(a)','sel',L],['sala','Sala','sel',R],['dia','Dia','date'],['de','Das','time'],['ate','Até','time']],{med:L[0][0],sala:R.some(x=>x[0]===id)?id:R[0][0],dia:today(),de:f(mn),ate:f(Math.min(mn+240,1439))},o=>{
   if(o.ate<=o.de){toast('O horário final precisa ser depois do inicial.');return}
   const ini=o.dia+'T'+o.de,fim=o.dia+'T'+o.ate;
+  const bz=mvL().find(v=>v.sala===o.sala&&v.med!==o.med&&v.ini<fim&&v.fim>ini);if(bz){toast('A sala '+roomN(o.sala)+' já tem médico vinculado nesse horário: '+medN(bz.med)+'. Só um médico por sala.');return}
   S.mv=mvL().filter(v=>{if(v.med!==o.med||v.fim<=ini||v.ini>=fim)return true;if(v.ini<ini){v.fim=ini;return true}return false});
   S.mv.push({id:uid(),med:o.med,sala:o.sala,ini,fim,by:(me&&me.u)||''});toast(sn(by('med',o.med).nome)+' vinculado(a) à sala '+roomN(o.sala)+'.')})};
 Object.assign(A,{
  cvCall(id){dial(id)},cvRooms:rooms,mvAdd,
+ waMed(id){const m=by('med',id);if(!m)return;let n=String(m.tel||'').replace(/\D/g,'');if(!n){toast(sn(m.nome)+' não tem WhatsApp cadastrado. Cadastre em Médicos › Editar.');return}if(n.length<=11)n='55'+n;window.open('https://wa.me/'+n,'_blank','noopener')},
  cvAns:async()=>{if(!C||C.role!=='in'||C.st!=='ring')return;const c=C;let st;try{st=await mic()}catch(e){toast('Permita o uso do microfone para atender.');return}
   if(C!==c){st.getTracks().forEach(t=>t.stop());return}
   ringStop();clearTimeout(c.tmo);c.stream=st;c.st='conn';ui();
@@ -128,7 +134,7 @@ Object.assign(A,{
 const si=A.slInfo;
 A.slInfo=function(id){si.apply(this,arguments);const h=document.querySelector('dialog[open] .mb h2');if(!h)return;
  const on=mvRoom(id),mine=myRooms();
- h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+(v.ses?' (até sair)':' (até '+hhmm(v.fim)+')')).join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx"><button type="button" class="btn p" data-a="cvCall,${id}" ${mine.has(id)?'disabled':''}>${IC('mic')}Ligar para esta sala</button>${canMv()?`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Desvincular ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
+ h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+(v.ses?' (até sair)':' (até '+hhmm(v.fim)+')')).join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx"><button type="button" class="btn p" data-a="cvCall,${id}" ${mine.has(id)?'disabled':''}>${IC('mic')}Ligar para esta sala</button>${waBtn(id,1)}${canMv()?(recId(id)?'':`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`)+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Desvincular ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
 const sv=V.salv;
 V.salv=()=>{let h=sv();
  h=h.replace(/(data-a="slInfo,([^"]+)"><b>[^<]*<\/b>)/g,(m,a,id)=>a+chipRoom(id));
@@ -137,7 +143,7 @@ V.salv=()=>{let h=sv();
  return h.replace('<div class="top">',panel+'<div class="top">')};
 
 /* ---------- botão flutuante (telefone) e canal ---------- */
-const fabOK=()=>!!me&&(me.r==='med'||!!devRoom()||(window.planLv&&window.planLv()>=2));
+const fabOK=()=>!!me&&(['med','rec','admin'].includes(me.r)||!!devRoom()||(window.planLv&&window.planLv()>=2));
 const tick=()=>{let f=document.getElementById('cv-fab');
  if(fabOK()){if(!f){f=document.createElement('button');f.id='cv-fab';f.type='button';f.className='btn p';f.setAttribute('data-a','cvRooms');f.setAttribute('aria-label','Ligar para uma sala');f.title='Ligar para uma sala';f.innerHTML=IC('phone');document.body.appendChild(f)}f.hidden=!!C;sigOpen()}
  else{if(f)f.remove();if(!me){if(C)end();sigClose()}}};

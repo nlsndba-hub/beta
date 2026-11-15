@@ -54,7 +54,7 @@ normEst();save();
 const NAV=[['Atendimento',[['dash','Painel','home'],['mdc','Atendimento médico','steth'],['pend','Pendências do dia','bell'],['fluxo','Fluxo do sistema','flow'],['ag','Agenda','cal'],['pac','Pacientes','users']]],['Salas',[['salv','Visualizar','eye'],['salc','Cadastrar','map']]],['Cadastros',[['med','Médicos','steth'],['func','Funcionários e acessos','users'],['ex','Exames','clip']]],['Gestão',[['fin','Financeiro','wallet'],['rp','Repasse médico','pct'],['est','Estoque','box'],['rel','Relatórios','chart']]],['Sistema',[['pacs','PACS / Worklist','clip'],['wa','Mensagens WhatsApp','msg'],['plan','Planos','star'],['cfg','Configurações','set']]]];
 const ONLY_ADM=['fin','rp','rel','cfg','salc','func'];
 const C={pac:{t:'Paciente',f:[['nome','Nome completo','text'],['tel','WhatsApp (DDD + número)','tel'],['nasc','Nascimento','date'],['cpf','CPF','text'],['conv','Convênio','text']]},
-med:{t:'Médico',f:[['nome','Nome','text'],['tipo','Tipo','sel',['Radiologista','Solicitante']],['crm','CRM','text'],['pct','Repasse (%)','number'],['op','Operador/técnico vinculado','text'],['turno','Turno','sel',['','Manhã','Tarde','Noite']],['sala','Sala de atendimento','sel',()=>['',...salas()]]],cols:['nome','tipo','crm','pct','op','turno','sala']},
+med:{t:'Médico',f:[['nome','Nome','text'],['tipo','Tipo','sel',['Radiologista','Solicitante']],['crm','CRM','text'],['tel','WhatsApp (DDD + número)','tel'],['pct','Repasse (%)','number'],['op','Operador/técnico vinculado','text'],['turno','Turno','sel',['','Manhã','Tarde','Noite']],['sala','Sala de atendimento','sel',()=>['',...salas()]]],cols:['nome','tipo','crm','pct','op','turno','sala']},
 ex:{t:'Exame',f:[['nome','Exame','text'],['sala','Sala','sel',salas],['valor','Valor (R$)','number']],cols:['nome','sala','valor']},
 est:{t:'Item de estoque',f:[['item','Item','text'],['qtd','Quantidade','number'],['min','Mínimo','number'],['un','Unidade','text']],cols:['item','qtd','min','un']}};
 const H={med:['Nome','Tipo','CRM','Repasse %','Operador','Turno','Sala'],ex:['Exame','Sala','Valor'],est:['Item','Qtd','Mínimo','Un']};
@@ -70,8 +70,8 @@ function waOpen(tel,t){if(!tel){toast('Paciente sem WhatsApp cadastrado');return
 const A={
  close:closeM,print(){print()},
  falta(id){if(confirm('Registrar que o paciente faltou? A conta a receber em aberto será removida.'))A.st(id,'Faltou')},
- add(c){form('Novo — '+C[c].t,C[c].f,{},o=>{if(c==='pac')o.tel=o.tel.replace(/\D/g,'');S[c].push({id:uid(),...o})})},
- edit(c,id){form('Editar — '+C[c].t,C[c].f,by(c,id),o=>{if(c==='pac')o.tel=o.tel.replace(/\D/g,'');Object.assign(by(c,id),o)})},
+ add(c){form('Novo — '+C[c].t,C[c].f,{},o=>{if(c==='pac'||c==='med')o.tel=(o.tel||'').replace(/\D/g,'');S[c].push({id:uid(),...o})})},
+ edit(c,id){form('Editar — '+C[c].t,C[c].f,by(c,id),o=>{if(c==='pac'||c==='med')o.tel=(o.tel||'').replace(/\D/g,'');Object.assign(by(c,id),o)})},
  del(c,id){if(confirm('Excluir este registro?')){S[c]=S[c].filter(x=>x.id!==id);save();render()}},
  mov(id,n){const i=by('est',id);i.qtd=Math.max(0,i.qtd+(+n));save();render()},
  agNew(pid){if(!S.pac.length){toast('Cadastre um paciente primeiro');return}
