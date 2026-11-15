@@ -53,6 +53,7 @@
   tm=setInterval(()=>{if(el&&!el.classList.contains('off'))el.innerHTML=html()},30000)}catch(err){console.error('Protetor de tela:',err);try{el&&el.remove()}catch(x){}el=null;last=Date.now()}};
  const wake=()=>{if(!el||el.classList.contains('off'))return;const e=el;clearInterval(tm);e.classList.add('off');e.classList.remove('on');
   setTimeout(()=>{try{e.hidePopover&&e.hidePopover()}catch(x){}e.remove();if(el===e)el=null;last=Date.now()},850)};
+ window.RSL_wake=()=>{last=Date.now();wake()};
  const act=e=>{const mv=e.type==='mousemove';if(mv){const d=Math.abs(e.screenX-lx)+Math.abs(e.screenY-ly);lx=e.screenX;ly=e.screenY;if(d<4)return}last=Date.now();if(!el)return;if(!mv){e.stopPropagation();if(e.cancelable)e.preventDefault()}if(Date.now()-at>400)wake()};
  ['mousemove','mousedown','mouseup','click','keydown','keyup','touchstart','wheel','pointerdown'].forEach(t=>document.addEventListener(t,act,{capture:true,passive:false}));
  setInterval(()=>{if(!el&&me&&IDLE_MS()>0&&Date.now()-last>=IDLE_MS())show()},500)})();
