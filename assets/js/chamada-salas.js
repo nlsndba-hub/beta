@@ -1,7 +1,7 @@
 /* ===== v40 — Médico ↔ sala por período + chamada de voz entre salas =====
    1) Vínculo: a recepção/administração vincula o médico a uma sala por um período (coleção "mv").
    2) Chamada: em Salas › Visualizar, clicar na sala mostra o botão do microfone. A sala escolhida toca
-      (tela piscando roxo + toque suave) e quem estiver nela clica em "Atender", como numa ligação.
+      (tela piscando verde néon + toque suave) e quem estiver nela clica em "Atender", como numa ligação.
    Funciona sala↔recepção e médico↔médico. Áudio via WebRTC; o aviso da chamada passa pelo canal de
    tempo real do Supabase (modo nuvem) ou entre abas do mesmo navegador (modo local, só para teste). */
 (()=>{
@@ -42,11 +42,11 @@ const ringStop=()=>{clearInterval(ringTm);ringTm=0},ringStart=out=>{ringStop();r
 /* ---------- tela da chamada (camada acima de tudo) ---------- */
 let C=null;
 const mk=id=>{let e=document.getElementById(id);if(!e){e=document.createElement('div');e.id=id;document.body.appendChild(e)}return e};
-const topShow=e=>{if('popover'in e){if(!e.hasAttribute('popover'))e.setAttribute('popover','manual');try{if(e.matches(':popover-open'))e.hidePopover();e.showPopover()}catch(x){}}else e.style.display='block'};
-const topHide=e=>{if(!e)return;if('popover'in e){try{e.hidePopover()}catch(x){}}else e.style.display='none'};
+const topShow=e=>{if('popover'in e){if(!e.hasAttribute('popover'))e.setAttribute('popover','manual');try{if(e.matches(':popover-open'))e.hidePopover();e.showPopover()}catch(x){}}else e.classList.add('fb')};
+const topHide=e=>{if(!e)return;if('popover'in e){try{e.hidePopover()}catch(x){}}else e.classList.remove('fb')};
 const mmss=ms=>{const s=Math.floor(ms/1000);return pad(Math.floor(s/60))+':'+pad(s%60)};
 const ui=()=>{const p=mk('cv-pulse'),u=mk('cv-ui');
- if(!C){topHide(p);topHide(u);return}
+ if(!C){topHide(p);topHide(u);u.className='';u.innerHTML='';return}
  const nm=esc(C.name||'')+(C.rn?' · '+esc(C.rn):'');let h='';
  if(C.role==='in'&&C.st==='ring')h=`<div class="cvh"><span class="cvi">${IC('phone')}</span><div><b>Chamada de ${nm}</b><div class="hint">Está ligando para esta sala…</div></div></div><div class="cva"><button type="button" class="btn w cvbig" data-a="cvAns">${IC('phone')}Atender</button><button type="button" class="btn d cvbig" data-a="cvRej">${IC('phoneoff')}Recusar</button></div>`;
  else if(C.role==='out'&&C.st==='ring')h=`<div class="cvh"><span class="cvi">${IC('mic')}</span><div><b>Chamando ${nm}…</b><div class="hint">Aguardando alguém atender.</div></div></div><div class="cva"><button type="button" class="btn d cvbig" data-a="cvEnd">${IC('phoneoff')}Cancelar</button></div>`;
@@ -122,18 +122,18 @@ Object.assign(A,{
  cvRej(){if(!C)return;send({t:'rej',call:C.call,to:C.peer});end()},
  cvEnd(){if(!C)return;if(C.role==='out'&&C.st==='ring'){send({t:'cancel',call:C.call});end('Chamada cancelada.')}else end('Chamada encerrada.',true)},
  cvMute(){if(!C||!C.stream)return;C.mute=!C.mute;C.stream.getAudioTracks().forEach(t=>t.enabled=!C.mute);ui()},
- mvEnd(id){const v=mvL().find(x=>x.id===id);if(!v)return;if(v.ini>=nowS())S.mv=mvL().filter(x=>x.id!==id);else v.fim=nowS();save();render();toast('Vínculo encerrado.')}});
+ mvEnd(id){const v=mvL().find(x=>x.id===id);if(!v)return;if(v.ini<nowS()&&!confirm('Desvincular '+medN(v.med)+' da sala '+roomN(v.sala)+'?'))return;if(v.ini>=nowS())S.mv=mvL().filter(x=>x.id!==id);else v.fim=nowS();save();render();toast('Médico(a) desvinculado(a) da sala.')}});
 
 /* ---------- integra na tela Salas ---------- */
 const si=A.slInfo;
 A.slInfo=function(id){si.apply(this,arguments);const h=document.querySelector('dialog[open] .mb h2');if(!h)return;
  const on=mvRoom(id),mine=myRooms();
- h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+' (até '+hhmm(v.fim)+')').join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx"><button type="button" class="btn p" data-a="cvCall,${id}" ${mine.has(id)?'disabled':''}>${IC('mic')}Ligar para esta sala</button>${canMv()?`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Encerrar vínculo de ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
+ h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+(v.ses?' (até sair)':' (até '+hhmm(v.fim)+')')).join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx"><button type="button" class="btn p" data-a="cvCall,${id}" ${mine.has(id)?'disabled':''}>${IC('mic')}Ligar para esta sala</button>${canMv()?`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Desvincular ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
 const sv=V.salv;
 V.salv=()=>{let h=sv();
  h=h.replace(/(data-a="slInfo,([^"]+)"><b>[^<]*<\/b>)/g,(m,a,id)=>a+chipRoom(id));
  const td=today(),L=mvL().filter(v=>v.ini.slice(0,10)===td||actv(v)).sort((a,b)=>a.ini.localeCompare(b.ini));
- const panel=`<div class="mvp"><b>Médicos nas salas hoje:</b>${L.length?L.map(v=>`<span class="mvi${actv(v)?' on':''}">${esc(medN(v.med))} → ${esc(roomN(v.sala))} · ${hhmm(v.ini)}–${hhmm(v.fim)}${actv(v)?' (agora)':''}${canMv()?`<button type="button" class="x" data-a="mvEnd,${v.id}" aria-label="Encerrar ou remover vínculo">${IC('x')}</button>`:''}</span>`).join(''):'<span class="hint">Nenhum vínculo para hoje.</span>'}${canMv()?`<button type="button" class="btn s" data-a="mvAdd,">${IC('plus')}Vincular médico</button>`:''}</div>`;
+ const panel=`<div class="mvp"><b>Médicos nas salas hoje:</b>${L.length?L.map(v=>`<span class="mvi${actv(v)?' on':''}">${esc(medN(v.med))} → ${esc(roomN(v.sala))} · ${v.ses?'desde '+hhmm(v.ini)+' · até sair':hhmm(v.ini)+'–'+hhmm(v.fim)}${actv(v)?' (agora)':''}${canMv()?`<button type="button" class="x" data-a="mvEnd,${v.id}" aria-label="Desvincular médico da sala" title="Desvincular">${IC('x')}</button>`:''}</span>`).join(''):'<span class="hint">Nenhum vínculo para hoje.</span>'}${canMv()?`<button type="button" class="btn s" data-a="mvAdd,">${IC('plus')}Vincular médico</button>`:''}</div>`;
  return h.replace('<div class="top">',panel+'<div class="top">')};
 
 /* ---------- botão flutuante (telefone) e canal ---------- */

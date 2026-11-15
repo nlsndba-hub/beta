@@ -53,6 +53,7 @@ const Store=(()=>{
 
   window.addEventListener('beforeunload',e=>{if(remote()&&(pending||busy)){e.preventDefault();e.returnValue=''}});
   return{KEY,
+    async idle(max=5000){if(!remote())return;const t=Date.now();clearTimeout(tm);if(pending&&!busy)flush();while((busy||pending)&&Date.now()-t<max)await new Promise(r=>setTimeout(r,120))},
     me(){if(remote()){const P=window.__RSL_PRELOAD;return P&&P.me||null}try{return JSON.parse(sessionStorage.getItem('ur-me'))}catch(e){return null}},
     load(factory){
       if(!remote()){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
