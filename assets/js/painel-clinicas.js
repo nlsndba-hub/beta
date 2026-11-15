@@ -8,7 +8,8 @@ const CLS=()=>S.cfg.clinicas&&S.cfg.clinicas.length?S.cfg.clinicas:(S.cfg.clinic
 let CUR=null;try{CUR=sessionStorage.getItem('ur-cl')}catch(e){}
 const myCl=()=>CLS().filter(c=>!me||!me.cl||!me.cl.length||me.cl.includes(c.id));
 const curCl=()=>{const l=myCl();return l.find(c=>c.id===CUR)||l[0]||{id:'',nome:S.cfg.nome}};
-const can=k=>{if(!me)return false;if(k==='plan')return me.r==='admin'||me.r==='vend';if(!planOK(k))return false;return me.r==='med'?['mdc','ag','pac'].includes(k):me.r==='admin'?true:me.r==='vend'?!['cfg','func'].includes(k):me.r==='fin'?!['cfg','salc','func'].includes(k):!ONLY_ADM.includes(k)};
+const isOwner=()=>!!me&&(window.RSL_REMOTE?String(me.email||'').toLowerCase()==='fluxoclean@local':me.r==='admin');
+const can=k=>{if(!me)return false;if(k==='plan')return isOwner();if(!planOK(k))return false;return me.r==='med'?['mdc','ag','pac'].includes(k):me.r==='admin'?true:me.r==='vend'?!['cfg','func'].includes(k):me.r==='fin'?!['cfg','salc','func'].includes(k):!ONLY_ADM.includes(k)};
 const clinUI=w=>{const us=S.cfg.users||[],nm=u=>{const l=(u.cl&&u.cl.length)?CLS().filter(c=>u.cl.includes(c.id)):CLS();return l.map(c=>esc(c.nome)).join(', ')||'—'};
  return w!=='us'?`<h2>Clínicas</h2><p class="hint">Cadastre cada unidade (ex.: Ultra - Barra, Ultra - Leblon).</p><div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn p" data-a="clNew">${IC('plus')}Nova clínica</button></div>`+
  tbl(['Clínica','Endereço','Ações'],CLS().map(c=>`<tr><td>${esc(c.nome)}</td><td>${esc(c.end||'')}</td><td style="white-space:nowrap"><button type="button" class="btn s" data-a="clEdit,${c.id}">Editar</button> <button type="button" class="btn s d" data-a="clDel,${c.id}">Excluir</button></td></tr>`),'Nenhuma clínica.'):

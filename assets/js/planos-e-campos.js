@@ -23,17 +23,8 @@ const MD=[ /* [módulo, plano mínimo, chaves de menu liberadas] */
  ['Inventário de estoque',4,[]],
  ['Várias clínicas (unidades)',4,[]]];
 const KL={};MD.forEach(m=>m[2].forEach(k=>KL[k]=m[1]));
-const DUR=[['m7','7 minutos (teste)',7],['m30','30 minutos',30],['h1','1 hora',60],['h3','3 horas',180],['h12','12 horas',720],['d1','1 dia',1440],['d3','3 dias',4320],['d7','7 dias',10080],['d15','15 dias',21600],['d30','30 dias',43200],['mo1','1 mês',0]];
-/* Teste grátis: sempre 7 dias. O código digitado define qual plano é liberado. */
-const durK=()=>'d7';
-const CODES={'14d64dfas32aabasi':1,'14d64dfas32aaprof':2,'14d64dfas32aaprem':3,'14d64dfas32aaplus':4}; /* código -> plano (1 Básico, 2 Profissional, 3 Premium, 4 Premium +) */
-const durL=()=>DUR.find(x=>x[0]===durK())[1].replace(' (teste)','');
-const endOf=(t0,k)=>{const d=DUR.find(x=>x[0]===k);if(!d[2]){const e=new Date(t0);e.setMonth(e.getMonth()+1);return e.getTime()}return t0+d[2]*60000};
-/* Teste grátis individual: cada usuário tem o seu, guardado em cfg.trials[id do usuário]. */
-const tk=()=>me?String(me.id||me.u):'';
-const myT=()=>S.cfg&&S.cfg.trials&&S.cfg.trials[tk()];
-const tr=()=>{const t=myT();return t&&t.on&&Date.now()<t.fim?t:null};
-window.planLv=()=>{const t=tr();return t?t.plano:0};
+/* Plano global do sistema: definido só pelo acesso proprietário (fluxoclean@local) e guardado em S.plano. */
+window.planLv=()=>isOwner()?4:Math.min(4,Math.max(1,(S.plano&&+S.plano.n)||4));
 window.planOK=k=>(KL[k]||0)<=window.planLv();
 const fdh=t=>new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 const left=ms=>{const m=Math.max(1,Math.ceil(ms/60000));return m<60?m+' min':m<1440?(Math.floor(m/60)+' h '+(m%60?m%60+' min':'')).trim():Math.floor(m/1440)+' dia(s)'};
@@ -41,28 +32,21 @@ const brl2=n=>'R$ '+n.toLocaleString('pt-BR');
 
 if(!ROLES.some(r=>r[0]==='vend'))ROLES.push(['vend','Vendedor (planos e demonstração)']);
 
-V.plan=()=>{const t=tr();
- const cards=PL.map(p=>{const on=t&&t.plano===p.id,li=MD.filter(m=>m[1]===p.id).map(m=>`<li>${esc(m[0])}</li>`).join('');
-  return`<article class="pl-c${on?' on':''}"><h3>${esc(p.n)}${on?' <span class="tag ok">Em teste</span>':''}</h3><div class="pl-p"><b>${brl2(p.p)}</b>/mês</div><p class="hint">${esc(p.d)}</p><div class="hint"><b>${p.id===1?'Inclui':'Tudo do '+esc(PL[p.id-2].n)+', mais'}:</b></div><ul>${li}</ul><div class="pl-w${p.id>=3?' y':''}">WhatsApp: ${p.id>=3?'liberado':'não incluso'}</div></article>`}).join('');
+V.plan=()=>{const cur=(S.plano&&+S.plano.n)||4,at=S.plano&&S.plano.em?fdh(S.plano.em):'',por=S.plano&&S.plano.por?S.plano.por:'',
+ cards=PL.map(p=>{const on=cur===p.id,li=MD.filter(m=>m[1]===p.id).map(m=>`<li>${esc(m[0])}</li>`).join('');
+  return`<article class="pl-c${on?' on':''}"><h3>${esc(p.n)}${on?' <span class="tag ok">Ativo</span>':''}</h3><div class="pl-p"><b>${brl2(p.p)}</b>/mês</div><p class="hint">${esc(p.d)}</p><div class="hint"><b>${p.id===1?'Inclui':'Tudo do '+esc(PL[p.id-2].n)+', mais'}:</b></div><ul>${li}</ul><div class="pl-w${p.id>=3?' y':''}">WhatsApp: ${p.id>=3?'liberado':'não incluso'}</div></article>`}).join('');
  const rows=MD.map(m=>`<tr><td>${esc(m[0])}</td>${PL.map(p=>`<td class="c">${p.id>=m[1]?'<span class="tag ok" aria-label="Incluso">✓</span>':'<span aria-label="Não incluso">—</span>'}</td>`).join('')}</tr>`).join('');
- return`<h1>Planos</h1><p class="sub">Escolha o plano que cabe na clínica. Cada plano libera um conjunto de menus; o valor é a mensalidade sugerida.</p><div class="fx"><div class="pl-g">${cards}</div>
- <section class="pn"><h2>Resumo do acesso por plano</h2><div class="tw"><table class="pl-tb"><thead><tr><th>Módulo</th>${PL.map(p=>`<th class="c">${esc(p.n)}</th>`).join('')}</tr></thead><tbody><tr><td><b>Mensalidade</b></td>${PL.map(p=>`<td class="c"><b>${brl2(p.p)}</b></td>`).join('')}</tr>${rows}</tbody></table></div></section>
- <section class="pn pl-t"><h2>Testar por ${esc(durL())}</h2>${t?`<p class="fxb" role="status">Teste do plano <b>${esc(PL[t.plano-1].n)}</b> ativo até ${fdh(t.fim)} (restam ${left(t.fim-Date.now())}). Depois disso, os recursos do plano deixam de funcionar.</p>`:`<p class="hint">Digite o código recebido: ele libera o plano correspondente por ${esc(durL())}. Ao terminar, ficam apenas Painel e Configurações.</p>`}
- <div class="pl-f"><div class="t"><label for="pl_c">Código de teste</label><input id="pl_c" type="text" autocomplete="off" placeholder="Digite o código"></div><div><label>&nbsp;</label><button class="btn p" data-a="plTry">Ativar teste de ${esc(durL())}</button></div></div></section></div>`};
+ return`<h1>Planos</h1><p class="sub">Somente este acesso (proprietário) altera o plano. A escolha vale para todos os usuários do sistema.</p><div class="fx"><section class="pn pl-t"><h2>Plano do sistema</h2><p class="fxb" role="status">Plano ativo: <b>${esc(PL[cur-1].n)}</b>${at?' · desde '+at:''}${por?' · por '+esc(por):''}</p><div class="pl-f"><div class="s"><label for="pl_sel">Plano</label><select id="pl_sel">${PL.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${esc(p.n)} — ${brl2(p.p)}/mês</option>`).join('')}</select></div><div><label>&nbsp;</label><button class="btn p" data-a="plSet">Ativar plano</button></div></div><p class="hint">Este acesso sempre vê todos os menus, qualquer que seja o plano ativo.</p></section>
+ <div class="pl-g">${cards}</div><section class="pn"><h2>Resumo do acesso por plano</h2><div class="tw"><table class="pl-tb"><thead><tr><th>Módulo</th>${PL.map(p=>`<th class="c">${esc(p.n)}</th>`).join('')}</tr></thead><tbody><tr><td><b>Mensalidade</b></td>${PL.map(p=>`<td class="c"><b>${brl2(p.p)}</b></td>`).join('')}</tr>${rows}</tbody></table></div></section></div>`};
 
-window.PLCFG=()=>`<div class="fx"><div style="display:grid;gap:12px;max-width:580px"><h2>Teste grátis dos planos</h2><p class="hint">Cada código de teste libera um plano (Básico, Profissional, Premium ou Premium +) por 7 dias para quem o digitar na aba Planos. Os códigos são fixos e definidos no sistema.</p></div></div>`;
+window.PLCFG=()=>`<div class="fx"><div style="display:grid;gap:12px;max-width:580px"><h2>Plano do sistema</h2><p class="hint">O plano vale para todos os usuários e só pode ser alterado pelo acesso proprietário, na aba Planos.</p></div></div>`;
 
 Object.assign(A,{
- plTry(){const c=($('#pl_c').value||'').trim().toLowerCase(),p=CODES[c];
-  if(!c){toast('Digite o código de teste.');$('#pl_c').focus();return}
-  if(!p){toast('Código inválido. Confira e tente de novo.');return}
-  const t0=Date.now();delete S.cfg.trial;(S.cfg.trials=S.cfg.trials||{})[tk()]={on:true,plano:p,ini:t0,fim:endOf(t0,durK()),dur:durK()};save();render();toast('Teste do plano '+PL[p-1].n+' liberado por '+durL())},
+ plSet(){if(!isOwner()){toast('Apenas o acesso proprietário altera o plano.');return}const n=+($('#pl_sel').value)||4;if(!confirm('Ativar o plano '+PL[n-1].n+' para todos os usuários?'))return;S.plano={n,em:new Date().toISOString(),por:me.email||me.u};save();render();toast('Plano '+PL[n-1].n+' ativado para todos os usuários')},
 });
 
-const g0=A.go;A.go=function(v){if(me&&!window.planOK(v)){toast('Este recurso não está no plano ativo. Veja a aba Planos.');return}return g0.apply(this,arguments)};
+const g0=A.go;A.go=function(v){if(me&&!window.planOK(v)){toast('Este recurso não está no plano ativo. Fale com o administrador do sistema.');return}return g0.apply(this,arguments)};
 
-const watch=()=>{const t=myT();if(t&&t.on&&Date.now()>=t.fim){t.on=false;save();if(me){toast('Teste encerrado: os recursos do plano foram desativados.');if(!can(view))view=me.r==='med'?'mdc':'dash';render()}}};
-setInterval(watch,5000);
 const R3=render;render=function(){document.documentElement.dataset.pl=String(window.planLv());return R3.apply(this,arguments)};
 
 /* ---------- Campos com tamanho padrão + dica em 12px ---------- */
