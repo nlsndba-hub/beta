@@ -85,6 +85,14 @@ $$;
 revoke all on function public.my_role() from public, anon;
 grant execute on function public.my_role() to authenticated;
 
+-- 6b) Proprietário do sistema (único que altera o plano): confere o e-mail na tabela de login
+create or replace function public.is_owner() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from auth.users where id = auth.uid() and lower(email) = 'fluxoclean@local')
+$$;
+revoke all on function public.is_owner() from public, anon;
+grant execute on function public.is_owner() to authenticated;
+
 -- 7) SEGURANÇA (RLS): sem login não se lê nem se grava nada
 alter table public.profiles enable row level security;
 alter table public.records  enable row level security;
@@ -101,7 +109,8 @@ create policy profiles_select on public.profiles for select to authenticated
   using (id = auth.uid() or public.my_role() = 'admin');
 drop policy if exists profiles_update on public.profiles;
 create policy profiles_update on public.profiles for update to authenticated
-  using (public.my_role() = 'admin') with check (public.my_role() = 'admin');
+  using (public.my_role() = 'admin' and (lower(coalesce(email,'')) <> 'fluxoclean@local' or public.is_owner()))
+  with check (public.my_role() = 'admin' and (lower(coalesce(email,'')) <> 'fluxoclean@local' or public.is_owner()));
 
 -- records e settings: lê quem tem acesso ativo; grava admin, financeiro, recepção e médico
 drop policy if exists records_select on public.records;
@@ -122,13 +131,14 @@ create policy settings_select on public.settings for select to authenticated
   using (public.my_role() in ('admin','fin','rec','med','vend'));
 drop policy if exists settings_insert on public.settings;
 create policy settings_insert on public.settings for insert to authenticated
-  with check (public.my_role() in ('admin','fin','rec','med'));
+  with check (public.my_role() in ('admin','fin','rec','med') and (key <> 'plano' or public.is_owner()));
 drop policy if exists settings_update on public.settings;
 create policy settings_update on public.settings for update to authenticated
-  using (public.my_role() in ('admin','fin','rec','med')) with check (public.my_role() in ('admin','fin','rec','med'));
+  using (public.my_role() in ('admin','fin','rec','med') and (key <> 'plano' or public.is_owner()))
+  with check (public.my_role() in ('admin','fin','rec','med') and (key <> 'plano' or public.is_owner()));
 drop policy if exists settings_delete on public.settings;
 create policy settings_delete on public.settings for delete to authenticated
-  using (public.my_role() = 'admin');
+  using (public.my_role() = 'admin' and (key <> 'plano' or public.is_owner()));
 
 -- 8) TEMPO REAL: quando um usuário salva, os outros veem sem recarregar
 do $$
