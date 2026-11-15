@@ -49,3 +49,26 @@ html[data-dens="3"] .nx-k .nx-i{display:none}
 .cards .card{padding:var(--cp) 12px}.cards .card b{font-size:var(--cn)}
 /* tabela paginada nunca rola na vertical */
 .tw.pg{overflow-x:auto!important;overflow-y:hidden!important}
+
+
+/* ===== v40 — vínculo médico↔sala e chamada de voz entre salas ===== */
+.mvc{display:inline-flex;align-items:center;gap:4px;max-width:100%;margin-top:2px;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--c1) 14%,var(--s));color:var(--c1);font-size:11.5px;font-weight:600;line-height:1.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mvc .ic{width:13px;height:13px}
+.mvp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;font-size:14px}
+.mvi{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s);font-size:13px}
+.mvi.on{border-color:var(--c1);background:color-mix(in srgb,var(--c1) 10%,var(--s));font-weight:600}
+.mvi .x{display:grid;place-items:center;width:22px;height:22px;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.mvi .x:hover{background:var(--s2)}.mvi .x .ic{width:14px;height:14px}
+.cvb{display:grid;gap:10px;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--s2)}
+.cvw{display:flex;align-items:center;gap:8px;font-size:14px}.cvx{display:flex;flex-wrap:wrap;gap:8px}
+.cvl .row{align-items:center}
+#cv-fab{position:fixed;right:18px;bottom:18px;z-index:40;width:54px;height:54px;min-width:54px;padding:0;border-radius:50%;display:grid;place-items:center;box-shadow:0 6px 18px #0004}
+#cv-fab[hidden]{display:none}#cv-fab .ic{width:24px;height:24px;margin:0}
+#cv-pulse{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;pointer-events:none;animation:cvp 1.1s ease-in-out infinite}
+@keyframes cvp{0%,100%{background:color-mix(in srgb,var(--c1) 0%,transparent);box-shadow:inset 0 0 0 6px color-mix(in srgb,var(--c1) 40%,transparent)}50%{background:color-mix(in srgb,var(--c1) 30%,transparent);box-shadow:inset 0 0 0 16px var(--c1)}}
+#cv-ui{position:fixed;inset:24px auto auto 50%;transform:translateX(-50%);width:min(440px,92vw);max-width:none;max-height:none;margin:0;padding:18px;border:2px solid var(--c1);border-radius:18px;background:var(--s);color:var(--tx);box-shadow:0 18px 50px #0006;display:grid;gap:14px;overflow:visible}
+#cv-ui.cv-in.ring{animation:cvk 1.1s ease-in-out infinite}
+@keyframes cvk{0%,100%{box-shadow:0 18px 50px #0006,0 0 0 0 color-mix(in srgb,var(--c1) 60%,transparent)}50%{box-shadow:0 18px 50px #0006,0 0 0 12px color-mix(in srgb,var(--c1) 0%,transparent)}}
+.cvh{display:flex;align-items:center;gap:14px}.cvh b{font-size:17px}
+.cvi{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:50%;background:var(--c1);color:#fff}.cvi .ic{width:26px;height:26px;margin:0}.cvi.on{background:#146c3a}
+.cva{display:flex;gap:10px;flex-wrap:wrap}.cva .cvbig{flex:1 1 140px;height:52px;min-width:0;width:auto;font-size:16px}
+@media(prefers-reduced-motion:reduce){#cv-pulse{animation-duration:2.8s}#cv-ui.cv-in.ring{animation:none}}
