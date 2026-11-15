@@ -1,6 +1,6 @@
 /* ===== v40 — Médico ↔ sala por período + chamada de voz entre salas =====
-   v59: ao clicar na sala, saiu o "Ligar para esta sala"; entrou "Mensagem WhatsApp médico" (abre a conversa, sem ligar)
-        e "Chat médico" (abre o chat interno com o médico vinculado). A chamada de voz continua no botão flutuante do telefone.
+   v59: ao clicar na sala, a ordem dos botões é: Ligar para esta sala (voz) → Chat médico (chat interno com o médico vinculado)
+        → Mensagem WhatsApp médico (abre a conversa no WhatsApp, sem ligar).
    1) Vínculo: a recepção/administração vincula o médico a uma sala por um período (coleção "mv").
    2) Chamada: em Salas › Visualizar, clicar na sala mostra o botão do microfone. A sala escolhida toca
       (tela piscando verde néon + toque suave) e quem estiver nela clica em "Atender", como numa ligação.
@@ -26,9 +26,9 @@ const isRec=r=>!!r&&/recep/.test(nz(r.nome)),recId=id=>isRec(SL().find(r=>r.id==
 const recvRooms=()=>{const s=myRooms();if(me&&(me.r==='rec'||me.r==='admin'))SL().filter(isRec).forEach(r=>s.add(r.id));return s};
 const canChat=()=>!!me&&(me.r==='admin'||me.r==='rec');
 const waBtn=(id,full)=>mvRoom(id).map(v=>{const n=esc(medN(v.med));
-  const wa=`<button type="button" class="btn${full?'':' s'}" data-a="waMed,${v.med}" title="Mensagem WhatsApp para ${n}" aria-label="Mensagem WhatsApp para ${n}">${IC('wa')}${full?'Mensagem WhatsApp médico · '+n:'WhatsApp'}</button>`;
   const ch=canChat()?`<button type="button" class="btn${full?'':' s'}" data-a="chatMed,${v.med}" title="Chat com ${n}" aria-label="Chat médico com ${n}">${IC('msg')}${full?'Chat médico · '+n:'Chat'}</button>`:'';
-  return wa+ch}).join('');
+  const wa=`<button type="button" class="btn${full?'':' s'}" data-a="waMed,${v.med}" title="Mensagem WhatsApp para ${n}" aria-label="Mensagem WhatsApp para ${n}">${IC('wa')}${full?'Mensagem WhatsApp médico · '+n:'WhatsApp'}</button>`;
+  return ch+wa}).join('');
 const chipRoom=id=>{const l=mvRoom(id);return l.length?`<span class="mvc">${IC('steth')}${l.map(v=>esc(medN(v.med))).join(', ')}</span>`:''};
 
 /* ---------- canal de aviso (signaling) ---------- */
@@ -142,8 +142,8 @@ Object.assign(A,{
 /* ---------- integra na tela Salas ---------- */
 const si=A.slInfo;
 A.slInfo=function(id){si.apply(this,arguments);const h=document.querySelector('dialog[open] .mb h2');if(!h)return;
- const on=mvRoom(id);
- h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+(v.ses?' (até sair)':' (até '+hhmm(v.fim)+')')).join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx">${waBtn(id,1)}${canMv()?(recId(id)?'':`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`)+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Desvincular ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
+ const on=mvRoom(id),mine=myRooms();
+ h.insertAdjacentHTML('afterend',`<div class="f cvb"><div class="cvw">${IC('steth')}<span>${on.length?'Médico(a) na sala agora: <b>'+on.map(v=>esc(medN(v.med))+(v.ses?' (até sair)':' (até '+hhmm(v.fim)+')')).join(', ')+'</b>':'Nenhum médico vinculado a esta sala agora.'}</span></div><div class="cvx"><button type="button" class="btn p" data-a="cvCall,${id}" ${mine.has(id)?'disabled':''}>${IC('mic')}Ligar para esta sala</button>${waBtn(id,1)}${canMv()?(recId(id)?'':`<button type="button" class="btn" data-a="mvAdd,${id}">${IC('plus')}Vincular médico</button>`)+on.map(v=>`<button type="button" class="btn d" data-a="mvEnd,${v.id}">Desvincular ${esc(medN(v.med))}</button>`).join(''):''}</div></div>`)};
 const sv=V.salv;
 V.salv=()=>{let h=sv();
  h=h.replace(/(data-a="slInfo,([^"]+)"><b>[^<]*<\/b>)/g,(m,a,id)=>a+chipRoom(id));
