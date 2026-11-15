@@ -40,7 +40,7 @@ let AC=null,ringTm=0;
 const actx=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}};
 ['pointerdown','keydown'].forEach(n=>document.addEventListener(n,()=>{actx()},{capture:true,passive:true}));
 const note=(f,t0,d,v)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.05);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.05)};
-const ringOnce=out=>{const a=actx();if(!a||a.state!=='running')return;const t=a.currentTime+.02;if(out)note(440,t,.9,.05);else{note(523.25,t,.5,.08);note(659.25,t+.4,.6,.08);note(523.25,t+1.2,.5,.08);note(659.25,t+1.6,.6,.08)}};
+const ringOnce=out=>{const a=actx();if(!a||a.state!=='running')return;const t=a.currentTime+.02;if(out)note(440,t,.9,.075);else{note(523.25,t,.5,.12);note(659.25,t+.4,.6,.12);note(523.25,t+1.2,.5,.12);note(659.25,t+1.6,.6,.12)}};
 const SOM=()=>window.RSL_SOM,ringStop=()=>{clearInterval(ringTm);ringTm=0;if(SOM())SOM().stop('call')},ringStart=out=>{ringStop();if(!out&&SOM()&&SOM().start('call'))return;ringOnce(out);ringTm=setInterval(()=>ringOnce(out),3200)};
 
 /* ---------- tela da chamada (camada acima de tudo) ---------- */
@@ -119,7 +119,7 @@ const mvAdd=id=>{const meds=S.med.filter(m=>m.tipo==='Radiologista'),L=(meds.len
   S.mv.push({id:uid(),med:o.med,sala:o.sala,ini,fim,by:(me&&me.u)||''});toast(sn(by('med',o.med).nome)+' vinculado(a) à sala '+roomN(o.sala)+'.')})};
 Object.assign(A,{
  cvCall(id){dial(id)},cvRooms:rooms,mvAdd,
- waMed(id){const m=by('med',id);if(!m)return;let n=String(m.tel||'').replace(/\D/g,'');if(!n){toast(sn(m.nome)+' não tem WhatsApp cadastrado. Cadastre em Médicos › Editar.');return}if(n.length<=11)n='55'+n;window.open('https://wa.me/'+n,'_blank','noopener')},
+ waMed(id){const m=by('med',id);if(!m)return;let n=String(m.tel||'').replace(/\D/g,'');if(!n){toast(sn(m.nome)+' não tem WhatsApp cadastrado. Cadastre em Médicos › Editar.');return}if(n.length<=11)n='55'+n;const ua=navigator.userAgent.toLowerCase();if(/android|iphone|ipad/.test(ua)){window.open('whatsapp://call?phone='+n,'_blank','noopener')}else{window.open('https://wa.me/'+n,'_blank','noopener')}},
  cvAns:async()=>{if(!C||C.role!=='in'||C.st!=='ring')return;const c=C;let st;try{st=await mic()}catch(e){toast('Permita o uso do microfone para atender.');return}
   if(C!==c){st.getTracks().forEach(t=>t.stop());return}
   ringStop();clearTimeout(c.tmo);c.stream=st;c.st='conn';ui();

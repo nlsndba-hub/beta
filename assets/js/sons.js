@@ -7,7 +7,7 @@
 const DIR='assets/audio/',F={call:{src:'call.mp3',gap:400,synth:false},beep:{src:'beep.mp3',gap:1200,synth:true}},P={};
 let AC=null;
 const actx=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}};
-const synth=()=>{const a=actx();if(!a||a.state!=='running')return;const t=a.currentTime+.02;[880,1175].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.18);g.gain.linearRampToValueAtTime(.12,t+i*.18+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.18+.16);o.connect(g);g.connect(a.destination);o.start(t+i*.18);o.stop(t+i*.18+.2)})};
+const synth=()=>{const a=actx();if(!a||a.state!=='running')return;const t=a.currentTime+.02;[880,1175].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.18);g.gain.linearRampToValueAtTime(.18,t+i*.18+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.18+.16);o.connect(g);g.connect(a.destination);o.start(t+i*.18);o.stop(t+i*.18+.2)})};
 const mk=k=>{if(P[k])return P[k];const a=new Audio(DIR+F[k].src);a.preload='auto';
  const s=P[k]={a,want:false,tm:0,bad:false,sy:0};
  a.addEventListener('error',()=>{s.bad=true});
