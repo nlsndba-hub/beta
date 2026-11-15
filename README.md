@@ -15,7 +15,7 @@ assets/js/boot.js            decide modo local/nuvem, carrega os dados e os dema
 assets/js/storage.js         camada de dados (localStorage ou Supabase, só envia o que mudou)
 assets/js/auth.js            entrar, sair, trocar senha
 assets/js/usuarios-remoto.js criação/edição de usuários no modo nuvem
-assets/js/core.js ... pacs.js módulos do sistema (agenda, financeiro, estoque, médico, PACS, planos...)
+assets/js/core.js ... vinculo-salas.js, pacs.js módulos do sistema (agenda, financeiro, estoque, médico, PACS, planos...)
 assets/js/main.js            desenha a tela
 supabase/schema.sql          tabelas, segurança (RLS) e tempo real
 ```
@@ -23,9 +23,11 @@ Os scripts compartilham o mesmo escopo global; a ordem está em `boot.js`.
 
 ## Médico na sala e chamada de voz entre salas
 
-**Vincular o médico à sala (recepção e administrador):** em **Salas › Visualizar**, use **Vincular médico** (no topo ou ao clicar numa sala). Escolha médico, sala, dia e horário. Cada sala mostra o médico vinculado no momento, e o topo lista os vínculos do dia. Vincular o mesmo médico a outra sala no mesmo horário move ele para a nova sala.
+**Vínculo por solicitação (novo):** ao entrar, o médico vê as salas cadastradas e escolhe uma para pedir o vínculo (depois, o botão "Solicitar sala" no canto da tela permite pedir de novo ou trocar de sala). O pedido aparece para o administrador (ou recepção) que estiver logado, num cartão que pisca em néon branco, com **Aprovar** e **Recusar**. Aprovado, o médico fica vinculado **até sair do sistema**. Se ele for embora sem sair, o administrador vai em **Salas › Visualizar** e clica em **Desvincular** (na sala ou na lista "Médicos nas salas hoje").
 
-**Chamar uma sala:** clique na sala e depois em **Ligar para esta sala** (ícone do microfone), ou use o botão flutuante do telefone (canto inferior direito), que também vale para médicos. Na sala chamada, a tela pisca roxo e toca um som suave. Quem estiver lá clica em **Atender** (ou **Recusar**) e a conversa por voz começa. Funciona recepção → sala e médico → médico.
+**Vincular o médico à sala por horário (recepção e administrador), opcional:** em **Salas › Visualizar**, use **Vincular médico** (no topo ou ao clicar numa sala). Escolha médico, sala, dia e horário. Cada sala mostra o médico vinculado no momento, e o topo lista os vínculos do dia. Vincular o mesmo médico a outra sala no mesmo horário move ele para a nova sala.
+
+**Chamar uma sala:** clique na sala e depois em **Ligar para esta sala** (ícone do microfone), ou use o botão flutuante do telefone (canto inferior direito), que também vale para médicos. Na sala chamada, a tela pisca em verde néon e toca um som suave. Quem estiver lá clica em **Atender** (ou **Recusar**) e a conversa por voz começa. Funciona recepção → sala e médico → médico.
 
 **Quem recebe a chamada de uma sala:** o médico vinculado a ela naquele horário, ou o computador marcado como "Este computador fica na sala" (no botão do telefone). Se mais de um aparelho tocar, o primeiro que atender leva a chamada.
 
