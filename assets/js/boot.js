@@ -2,7 +2,7 @@
    e só então carrega os demais scripts, na ordem certa. */
 (async()=>{
   const C=window.RSL_CONFIG||{},hasCloud=!!(C.SUPABASE_URL&&C.SUPABASE_ANON_KEY);
-  const SCRIPTS=['storage','auth','logo','core','agenda-pacs-repasse','painel-clinicas','financeiro','clinicas-usuarios','usuarios-remoto','medico','ui-fonte-salas','ui-tela-cheia-descanso','ui-ajuste-janela','estoque','planos-e-campos','sons','chamada-salas','vinculo-salas','pacs','main'].map(n=>'assets/js/'+n+'.js');
+  const SCRIPTS=['storage','auth','logo','core','agenda-pacs-repasse','painel-clinicas','financeiro','clinicas-usuarios','usuarios-remoto','medico','ui-fonte-salas','ui-tela-cheia-descanso','ui-ajuste-janela','estoque','planos-e-campos','sons','chamada-salas','vinculo-salas','pacs','chat-medico','main'].map(n=>'assets/js/'+n+'.js');
   const screen=(t,m,btn)=>{document.body.innerHTML='<div style="font:16px/1.5 system-ui,sans-serif;max-width:520px;margin:12vh auto;padding:24px"><h2 style="margin:0 0 8px">'+t+'</h2><p>'+m+'</p>'+(btn||'')+'</div>'};
   const load=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('Falha ao carregar '+src));document.body.appendChild(s)});
   const all=async(sb,table,order)=>{const out=[];for(let a=0;;a+=1000){

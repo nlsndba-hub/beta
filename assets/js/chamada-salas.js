@@ -22,7 +22,7 @@ const canMv=()=>!!me&&(me.r==='admin'||me.r==='rec');
 const isRec=r=>!!r&&/recep/.test(nz(r.nome)),recId=id=>isRec(SL().find(r=>r.id===id));
 /* quem recebe chamadas: o computador da sala, o médico vinculado e, para a sala Recepção, os usuários de recepção/administração logados */
 const recvRooms=()=>{const s=myRooms();if(me&&(me.r==='rec'||me.r==='admin'))SL().filter(isRec).forEach(r=>s.add(r.id));return s};
-const waBtn=(id,full)=>mvRoom(id).map(v=>`<button type="button" class="btn${full?'':' s'}" data-a="waMed,${v.med}" title="Chamar ${esc(medN(v.med))} no WhatsApp" aria-label="Ligar no WhatsApp para ${esc(medN(v.med))}">${IC('wa')}${full?'Ligar no WhatsApp · '+esc(medN(v.med)):'WhatsApp'}</button>`).join('');
+const waBtn=(id,full)=>mvRoom(id).map(v=>`<button type="button" class="btn${full?'':' s'}" data-a="chatMed,${v.med}" title="Chat com ${esc(medN(v.med))}" aria-label="Chat médico com ${esc(medN(v.med))}">${IC('msg')}${full?'Chat médico · '+esc(medN(v.med)):'Chat'}</button>`).join('');
 const chipRoom=id=>{const l=mvRoom(id);return l.length?`<span class="mvc">${IC('steth')}${l.map(v=>esc(medN(v.med))).join(', ')}</span>`:''};
 
 /* ---------- canal de aviso (signaling) ---------- */
@@ -120,6 +120,7 @@ const mvAdd=id=>{const meds=S.med.filter(m=>m.tipo==='Radiologista'),L=(meds.len
 Object.assign(A,{
  cvCall(id){dial(id)},cvRooms:rooms,mvAdd,
  waMed(id){const m=by('med',id);if(!m)return;let n=String(m.tel||'').replace(/\D/g,'');if(!n){toast(sn(m.nome)+' não tem WhatsApp cadastrado. Cadastre em Médicos › Editar.');return}if(n.length<=11)n='55'+n;const ua=navigator.userAgent.toLowerCase();if(/android|iphone|ipad/.test(ua)){window.open('whatsapp://call?phone='+n,'_blank','noopener')}else{window.open('https://wa.me/'+n,'_blank','noopener')}},
+ chatMed(id){if(window.RSL_CHAT){window.RSL_CHAT.open(id)}else{toast('Chat não disponível no momento.')}},
  cvAns:async()=>{if(!C||C.role!=='in'||C.st!=='ring')return;const c=C;let st;try{st=await mic()}catch(e){toast('Permita o uso do microfone para atender.');return}
   if(C!==c){st.getTracks().forEach(t=>t.stop());return}
   ringStop();clearTimeout(c.tmo);c.stream=st;c.st='conn';ui();
