@@ -21,6 +21,20 @@ supabase/schema.sql          tabelas, segurança (RLS) e tempo real
 ```
 Os scripts compartilham o mesmo escopo global; a ordem está em `boot.js`.
 
+## Médico na sala e chamada de voz entre salas
+
+**Vincular o médico à sala (recepção e administrador):** em **Salas › Visualizar**, use **Vincular médico** (no topo ou ao clicar numa sala). Escolha médico, sala, dia e horário. Cada sala mostra o médico vinculado no momento, e o topo lista os vínculos do dia. Vincular o mesmo médico a outra sala no mesmo horário move ele para a nova sala.
+
+**Chamar uma sala:** clique na sala e depois em **Ligar para esta sala** (ícone do microfone), ou use o botão flutuante do telefone (canto inferior direito), que também vale para médicos. Na sala chamada, a tela pisca roxo e toca um som suave. Quem estiver lá clica em **Atender** (ou **Recusar**) e a conversa por voz começa. Funciona recepção → sala e médico → médico.
+
+**Quem recebe a chamada de uma sala:** o médico vinculado a ela naquele horário, ou o computador marcado como "Este computador fica na sala" (no botão do telefone). Se mais de um aparelho tocar, o primeiro que atender leva a chamada.
+
+**Requisitos:**
+- Site em **https** (GitHub Pages serve) ou `localhost`, e permissão do microfone no navegador.
+- Modo nuvem: o **Realtime** do Supabase precisa estar ligado (já vem ligado). No modo local o aviso só chega entre abas do mesmo navegador, serve para testar.
+- O áudio vai direto entre os computadores (WebRTC) usando um servidor público STUN. Em redes muito restritas pode ser necessário um servidor TURN: informe-o em `config.js` com `ICE_SERVERS:[{urls:'stun:stun.l.google.com:19302'},{urls:'turn:...',username:'...',credential:'...'}]`.
+- Para o toque tocar, o navegador precisa ter recebido ao menos um clique na página depois de aberta (regra dos navegadores para áudio).
+
 ## Passo a passo
 
 ### 1. Criar o projeto no Supabase
