@@ -25,10 +25,12 @@ const isRec=r=>!!r&&/recep/.test(nz(r.nome)),recId=id=>isRec(SL().find(r=>r.id==
 /* quem recebe chamadas: o computador da sala, o médico vinculado e, para a sala Recepção, os usuários de recepção/administração logados */
 const recvRooms=()=>{const s=myRooms();if(me&&(me.r==='rec'||me.r==='admin'))SL().filter(isRec).forEach(r=>s.add(r.id));return s};
 const canChat=()=>!!me&&(me.r==='admin'||me.r==='rec');
-const waBtn=(id,full)=>mvRoom(id).map(v=>{const n=esc(medN(v.med));
+const waBtn=(id,full)=>{const L=mvRoom(id);
+  if(!L.length)return full?`<button type="button" class="btn" disabled title="Nenhum médico vinculado a esta sala">${IC('msg')}Chat médico</button><button type="button" class="btn" disabled title="Nenhum médico vinculado a esta sala">${IC('wa')}Mensagem WhatsApp médico</button>`:'';
+  return L.map(v=>{const n=esc(medN(v.med));
   const ch=canChat()?`<button type="button" class="btn${full?'':' s'}" data-a="chatMed,${v.med}" title="Chat com ${n}" aria-label="Chat médico com ${n}">${IC('msg')}${full?'Chat médico · '+n:'Chat'}</button>`:'';
   const wa=`<button type="button" class="btn${full?'':' s'}" data-a="waMed,${v.med}" title="Mensagem WhatsApp para ${n}" aria-label="Mensagem WhatsApp para ${n}">${IC('wa')}${full?'Mensagem WhatsApp médico · '+n:'WhatsApp'}</button>`;
-  return ch+wa}).join('');
+  return ch+wa}).join('')};
 const chipRoom=id=>{const l=mvRoom(id);return l.length?`<span class="mvc">${IC('steth')}${l.map(v=>esc(medN(v.med))).join(', ')}</span>`:''};
 
 /* ---------- canal de aviso (signaling) ---------- */
